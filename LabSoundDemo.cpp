@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 // Copyright (C) 2020, The LabSound Authors. All rights reserved.
 
-// Windows users will need to set a valid working directory for the
-// LabSoundExamples project, for instance $(ProjectDir)../../assets
 
 #if defined(_MSC_VER)
     #if !defined(_CRT_SECURE_NO_WARNINGS)
@@ -199,7 +197,7 @@ inline std::pair<AudioStreamConfig, AudioStreamConfig> GetDefaultAudioDeviceConf
 //    ex_simple    //
 /////////////////////
 
-// ex_simple desmontrate the use of an audio clip loaded from disk and a basic sine oscillator. 
+// ex_simple demonstrate the use of an audio clip loaded from disk and a basic sine oscillator. 
 struct ex_simple : public labsound_example
 {
     virtual void play(int argc, char** argv) override final
