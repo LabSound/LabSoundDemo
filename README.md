@@ -3,7 +3,7 @@
 clone this repository recursively
 
 ```sh
-git clone https://github.com/LabSound/LabSoundDemo
+git clone https://github.com/LabSound/LabSoundDemo --recursive
 ```
 
 ## LabSoundDemo
