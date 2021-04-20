@@ -10,13 +10,26 @@ configure_file("${LABSOUNDDEMO_ROOT}/LabSoundDemo.config.h" "${LABSOUNDDEMO_ROOT
 
 add_subdirectory(LabSound)
 
+if (APPLE)
+    set(PLATFORM_LIBS
+        "-framework AudioToolbox"
+        "-framework AudioUnit"
+        "-framework Accelerate"
+        "-framework Cocoa"
+        "-framework CoreAudio"
+#        "-framework Metal"
+#        "-framework MetalKit"
+#        "-framework QuartzCore"
+        )
+endif()
+
 add_executable(LabSoundStarter LabSoundStarter.cpp)
-target_link_libraries(LabSoundStarter Lab::Sound)
+target_link_libraries(LabSoundStarter Lab::Sound ${PLATFORM_LIBS})
 target_include_directories(LabSoundStarter PRIVATE "${LABSOUNDDEMO_ROOT}")
 install(TARGETS LabSoundStarter RUNTIME DESTINATION bin)
 
 add_executable(LabSoundDemo LabSoundDemo.cpp)
-target_link_libraries(LabSoundDemo Lab::Sound)
+target_link_libraries(LabSoundDemo Lab::Sound ${PLATFORM_LIBS})
 target_include_directories(LabSoundDemo PRIVATE "${LABSOUNDDEMO_ROOT}")
 install(TARGETS LabSoundDemo RUNTIME DESTINATION bin)
 
