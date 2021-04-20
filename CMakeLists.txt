@@ -2,10 +2,12 @@
 cmake_minimum_required (VERSION 3.4)
 project(LabSoundDemo)
 
+# Don't report that sample file installation up to date
+set(CMAKE_INSTALL_MESSAGE LAZY)
+
 set(LABSOUNDDEMO_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 configure_file("${LABSOUNDDEMO_ROOT}/LabSoundDemo.config.h" "${LABSOUNDDEMO_ROOT}/LabSoundDemo.h" @ONLY)
 
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 add_subdirectory(LabSound)
 
 add_executable(LabSoundStarter LabSoundStarter.cpp)
@@ -17,3 +19,16 @@ add_executable(LabSoundDemo LabSoundDemo.cpp)
 target_link_libraries(LabSoundDemo Lab::Sound)
 target_include_directories(LabSoundDemo PRIVATE "${LABSOUNDDEMO_ROOT}")
 install(TARGETS LabSoundDemo RUNTIME DESTINATION bin)
+
+add_executable(LabSoundInteractive 
+    LabSoundInteractive.cpp ImGuiGridSlider.cpp ImGuiGridSlider.h imgui-app/imgui_app.cpp)
+target_link_libraries(LabSoundInteractive Lab::Sound)
+target_include_directories(LabSoundInteractive PRIVATE "${LABSOUNDDEMO_ROOT}")
+if(WIN32)
+    target_compile_definitions(LabSoundInteractive PRIVATE SOKOL_D3D11 SOKOL_WIN32_FORCE_MAIN)
+elseif(APPLE)
+    target_compile_definitions(LabSoundInteractive PRIVATE SOKOL_METAL)
+elseif(UNIX)
+    target_compile_definitions(LabSoundInteractive PRIVATE SOKOL_GLCORE33)
+endif()
+install(TARGETS LabSoundInteractive RUNTIME DESTINATION bin)

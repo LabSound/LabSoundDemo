@@ -744,7 +744,7 @@ struct ex_peak_compressor : public labsound_example
 
             hihat_node->setBus(r, hihat);
             context->connect(filter, hihat_node, 0, 0);
-            hihat_node->gain()->setValue(0.2f);
+            //hihat_node->gain()->setValue(0.2f);
 
             snare_node->setBus(r, snare);
             context->connect(filter, snare_node, 0, 0);
@@ -803,7 +803,7 @@ struct ex_stereo_panning : public labsound_example
 
             audioClipNode->setBus(r, audioClip);
             context->connect(stereoPanner, audioClipNode, 0, 0);
-            audioClipNode->schedule(0.0);
+            audioClipNode->schedule(0.0, -1); // -1 to loop forever
 
             context->connect(context->device(), stereoPanner, 0, 0);
         }
@@ -812,8 +812,6 @@ struct ex_stereo_panning : public labsound_example
         {
             _nodes.push_back(audioClipNode);
             _nodes.push_back(stereoPanner);
-
-            audioClipNode->isLooping()->setBool(true, false);
 
             const int seconds = 8;
 
@@ -865,15 +863,13 @@ struct ex_hrtf_spatialization : public labsound_example
 
             audioClipNode->setBus(r, audioClip);
             context->connect(panner, audioClipNode, 0, 0);
-            audioClipNode->schedule(0.0);
+            audioClipNode->schedule(0.0, -1); // -1 to loop forever
         }
 
         if (audioClipNode)
         {
             _nodes.push_back(audioClipNode);
             _nodes.push_back(panner);
-
-            audioClipNode->isLooping()->setBool(true, false);
 
             context->listener()->setPosition({0, 0, 0});
             panner->setVelocity(4, 0, 0);
@@ -999,7 +995,7 @@ struct ex_misc : public labsound_example
         {
             ContextRenderLock r(context.get(), "ex_misc");
 
-            pingping->BuildSubgraph(context);
+            pingping->BuildSubgraph(*context.get());
             pingping->SetFeedback(.75f);
             pingping->SetDelayIndex(lab::TempoSync::TS_16);
 
@@ -1692,7 +1688,7 @@ int main(int argc, char *argv[]) try
     // We can optionally play for a number of iterations as a way of testing lifetime & memory issues.
     for (int i = 0; i < iterations; ++i)
     {
-        simple.ex->play(argc, argv);
+        granulation.ex->play(argc, argv);
     }
 
     return EXIT_SUCCESS;

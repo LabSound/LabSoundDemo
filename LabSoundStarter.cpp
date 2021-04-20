@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 // Copyright (C) 2020, The LabSound Authors. All rights reserved.
 
-
 #if defined(_MSC_VER)
     #if !defined(_CRT_SECURE_NO_WARNINGS)
         #define _CRT_SECURE_NO_WARNINGS
