@@ -193,11 +193,11 @@ inline std::pair<AudioStreamConfig, AudioStreamConfig> GetDefaultAudioDeviceConf
     return {inputConfig, outputConfig};
 }
 
-/////////////////////
+//-----------------//
 //    ex_simple    //
-/////////////////////
+//-----------------//
 
-// ex_simple demonstrate the use of an audio clip loaded from disk and a basic sine oscillator. 
+// demonstrate the use of an audio clip loaded from disk and a basic sine oscillator.
 struct ex_simple : public labsound_example
 {
     virtual void play(int argc, char** argv) override final
@@ -245,11 +245,67 @@ struct ex_simple : public labsound_example
 
 
 
+//------------------------//
+//    ex_test_resample    //
+//------------------------//
+
+// demonstrate the use of an audio clip loaded from disk and a basic sine oscillator.
+struct ex_test_resample : public labsound_example
+{
+    virtual void play(int argc, char** argv) override final
+    {
+        std::unique_ptr<lab::AudioContext> context;
+        const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration();
+        context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
+        lab::AudioContext& ac = *context.get();
+
+        auto musicClip = MakeBusFromSampleFile("samples/sin440-22050.wav", argc, argv);
+        if (!musicClip)
+            return;
+
+        std::shared_ptr<OscillatorNode> oscillator;
+        std::shared_ptr<SampledAudioNode> musicClipNode;
+        std::shared_ptr<GainNode> gain;
+
+        oscillator = std::make_shared<OscillatorNode>(ac);
+        gain = std::make_shared<GainNode>(ac);
+        gain->gain()->setValue(0.5f);
+
+        musicClipNode = std::make_shared<SampledAudioNode>(ac);
+        {
+            ContextRenderLock r(context.get(), "ex_test_resample");
+            musicClipNode->setBus(r, musicClip);
+        }
+        context->connect(context->device(), musicClipNode, 0, 0);
+
+        // osc -> gain -> destination
+        context->connect(gain, oscillator, 0, 0);
+        context->connect(context->device(), gain, 0, 0);
+
+        oscillator->frequency()->setValue(440.f);
+        oscillator->setType(OscillatorType::SINE);
+
+        _nodes.push_back(oscillator);
+        _nodes.push_back(musicClipNode);
+        _nodes.push_back(gain);
+
+        oscillator->start(0.0f);
+        Wait(std::chrono::seconds(1));
+        oscillator->stop(0.0f);
+        Wait(std::chrono::milliseconds(500));
+        musicClipNode->schedule(0.0);
+        Wait(std::chrono::milliseconds(500));
+        musicClipNode->detune()->setValue(1000.f);
+        Wait(std::chrono::milliseconds(500));
+    }
+};
 
 
-/////////////////////
+
+
+//-----------------//
 //    ex_osc_pop   //
-/////////////////////
+//-----------------//
 
 // ex_osc_pop to test oscillator start/stop popping (it shouldn't pop). 
 struct ex_osc_pop : public labsound_example
@@ -1666,6 +1722,7 @@ public:
 int main(int argc, char *argv[]) try
 {   
     Example<ex_simple> simple;
+    Example<ex_test_resample> resample;
     Example<ex_osc_pop> osc_pop;
     Example<ex_playback_events> playback_events;
     Example<ex_offline_rendering> offline_rendering;
@@ -1685,10 +1742,11 @@ int main(int argc, char *argv[]) try
     Example<ex_granulation_node> granulation;
     Example<ex_poly_blep> poly_blep;
 
-    // We can optionally play for a number of iterations as a way of testing lifetime & memory issues.
+    // We can optionally play for a number of iterations as a
+    // way of testing lifetime & memory issues.
     for (int i = 0; i < iterations; ++i)
     {
-        granulation.ex->play(argc, argv);
+        resample.ex->play(argc, argv);
     }
 
     return EXIT_SUCCESS;

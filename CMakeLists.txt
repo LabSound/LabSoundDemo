@@ -17,9 +17,9 @@ if (APPLE)
         "-framework Accelerate"
         "-framework Cocoa"
         "-framework CoreAudio"
-#        "-framework Metal"
-#        "-framework MetalKit"
-#        "-framework QuartzCore"
+        "-framework Metal"
+        "-framework MetalKit"
+        "-framework QuartzCore"
         )
 endif()
 
@@ -35,12 +35,14 @@ install(TARGETS LabSoundDemo RUNTIME DESTINATION bin)
 
 add_executable(LabSoundInteractive 
     LabSoundInteractive.cpp ImGuiGridSlider.cpp ImGuiGridSlider.h imgui-app/imgui_app.cpp)
-target_link_libraries(LabSoundInteractive Lab::Sound)
+target_link_libraries(LabSoundInteractive Lab::Sound ${PLATFORM_LIBS})
 target_include_directories(LabSoundInteractive PRIVATE "${LABSOUNDDEMO_ROOT}")
 if(WIN32)
     target_compile_definitions(LabSoundInteractive PRIVATE SOKOL_D3D11 SOKOL_WIN32_FORCE_MAIN)
 elseif(APPLE)
     target_compile_definitions(LabSoundInteractive PRIVATE SOKOL_METAL)
+    set_source_files_properties(imgui-app/imgui_app.cpp PROPERTIES
+                            COMPILE_FLAGS "-x objective-c++")
 elseif(UNIX)
     target_compile_definitions(LabSoundInteractive PRIVATE SOKOL_GLCORE33)
 endif()

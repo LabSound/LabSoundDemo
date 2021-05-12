@@ -95,7 +95,7 @@ bool SliderScalar2D(char const* pLabel, float* fValueX, float* fValueY, const fl
     ImVec2 vPos = ImGui::GetCursorScreenPos();
     ImRect oRect(vPos + vHeightOffset, vPos + vSize + vHeightOffset);
 
-    ImGui::Text(pLabel);
+    ImGui::TextUnformatted(pLabel);
 
     ImGui::PushID(iID);
 
@@ -310,7 +310,7 @@ bool SliderScalar3D(char const* pLabel, float* pValueX, float* pValueY, float* p
     ImVec2 vPos = GetCursorScreenPos();
     ImRect oRect(vPos + vHeightOffset, vPos + vSize + vHeightOffset);
 
-    ImGui::Text(pLabel);
+    ImGui::TextUnformatted(pLabel);
 
     ImGui::PushID(iID);
 
