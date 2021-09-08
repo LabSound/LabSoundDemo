@@ -28,6 +28,11 @@ target_link_libraries(LabSoundStarter Lab::Sound ${PLATFORM_LIBS})
 target_include_directories(LabSoundStarter PRIVATE "${LABSOUNDDEMO_ROOT}")
 install(TARGETS LabSoundStarter RUNTIME DESTINATION bin)
 
+add_executable(LabSoundOfflineStarter LabSoundOfflineStarter.cpp)
+target_link_libraries(LabSoundOfflineStarter Lab::Sound ${PLATFORM_LIBS})
+target_include_directories(LabSoundOfflineStarter PRIVATE "${LABSOUNDDEMO_ROOT}")
+install(TARGETS LabSoundOfflineStarter RUNTIME DESTINATION bin)
+
 add_executable(LabSoundDemo LabSoundDemo.cpp)
 target_link_libraries(LabSoundDemo Lab::Sound ${PLATFORM_LIBS})
 target_include_directories(LabSoundDemo PRIVATE "${LABSOUNDDEMO_ROOT}")
