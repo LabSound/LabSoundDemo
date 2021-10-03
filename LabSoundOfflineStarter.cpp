@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) try
 
         printf("Recorded %f seconds of audio\n", recorder->recordedLengthInSeconds());
 
-        context->disconnect(recorder);
+        context->disconnectInput(recorder);
         recorder->writeRecordingToWav("ex_offline_rendering.wav", false);
         complete = true;
     };

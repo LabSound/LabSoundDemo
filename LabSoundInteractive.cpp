@@ -198,26 +198,22 @@ struct labsound_example
             return;
 
         auto& ac = *_demo->context.get();
-        if (!ac.isConnected(_demo->recorder, _root_node))
-        {
-            // connect synchronously
-            ac.connect(_demo->recorder, _root_node, 0, 0);
-            ac.synchronizeConnections();
-            _root_node->_scheduler.start(0);
-        }
+        ac.connect(_demo->recorder, _root_node, 1, 0);
+        ac.connect(ac.device(), _root_node, 0, 0);
+        ac.synchronizeConnections();
+        _root_node->_scheduler.start(0);
         _connected = true;
     }
 
     void disconnect()
     {
         _connected = false;
-
-        if (!_root_node)
+        if (_root_node)
             return;
 
         auto& ac = *_demo->context.get();
-        ac.disconnect(_root_node);
-        ac.disconnect(_demo->recorder);
+        ac.disconnectNode(ac.device(), _root_node);
+        ac.disconnectInput(_demo->recorder);
         ac.synchronizeConnections();
     }
 
@@ -588,7 +584,7 @@ struct ex_offline_rendering : public labsound_example
 
             printf("Recorded %f seconds of audio\n", recorder->recordedLengthInSeconds());
 
-            context->disconnect(recorder);
+            context->disconnectInput(recorder);
             recorder->writeRecordingToWav(path.c_str(), false);
             complete = true;
         };
@@ -851,22 +847,22 @@ struct ex_runtime_graph_update : public labsound_example
         if (disconnect == 1 && duration > std::chrono::milliseconds(500))
         {
             disconnect = 2;
-            ac.disconnect(nullptr, oscillator1, 0, 0);
+            ac.disconnectNode(gain, oscillator1);
             ac.connect(gain, oscillator2, 0, 0);
         }
 
         if (disconnect == 2 && duration > std::chrono::milliseconds(1000))
         {
             disconnect = 3;
-            ac.disconnect(nullptr, oscillator2, 0, 0);
+            ac.disconnectNode(gain, oscillator2);
             ac.connect(gain, oscillator1, 0, 0);
         }
 
         if (disconnect == 3 && duration > std::chrono::milliseconds(1500))
         {
-            ac.disconnect(nullptr, oscillator1, 0, 0);
-            ac.disconnect(nullptr, oscillator2, 0, 0);
-            ac.disconnect(gain, _demo->recorder);
+            ac.disconnectNode(gain, oscillator1, 0, 0);
+            ac.disconnectNode(gain, oscillator2, 0, 0);
+            ac.disconnectNode(gain, _demo->recorder);
             disconnect = 4;
             std::cout << "OscillatorNode 1 use_count: " << oscillator1.use_count() << std::endl;
             std::cout << "OscillatorNode 2 use_count: " << oscillator2.use_count() << std::endl;
