@@ -100,7 +100,8 @@ void traverse(ContextRenderLock* r, AudioNode* root, char const* const prefix, i
     auto params = root->params();
     for (auto& p : params)
     {
-        if (p->isConnected())
+        auto& inputs = p->inputs();
+        if (inputs.sources.size() > 0)
         {
             AudioBus const* const bus = p->bus();
             if (bus)
@@ -111,10 +112,10 @@ void traverse(ContextRenderLock* r, AudioNode* root, char const* const prefix, i
                 printf("driven param has %s values\n", input_is_zero);
             }
 
-            int c = p->numberOfRenderingConnections(*r);
+            int c = (int) inputs.sources.size();
             for (int j = 0; j < c; ++j)
             {
-                AudioNode* n = p->renderingOutput(*r, j)->sourceNode();
+                AudioNode* n = inputs.sources[j].node.get();
                 if (n)
                 {
                     if (nodes.find(reinterpret_cast<uintptr_t>(n)) == nodes.end())
@@ -134,29 +135,33 @@ void traverse(ContextRenderLock* r, AudioNode* root, char const* const prefix, i
             }
         }
     }
-    for (int i = 0; i < root->numberOfInputs(); ++i)
+
+    const auto& inputs = root->inputs();
+    for (int i = 0; i < inputs.size(); ++i)
     {
-        auto input = root->input(i);
-        if (input)
+        const char* input_is_zero;
+        if (!inputs[i].sources.size())
+            input_is_zero = "not connected";
+        else 
+            input_is_zero = inputs[i].sources[0].node->outputBus(*r, 0)->maxAbsValue() > 0.f ? "active signal" : "zero signal";
+
+        for (int s = 0; s < tab; ++s)
+            printf(" ");
+
+        printf("input %d: %s\n", i, input_is_zero);
+        int c = (int) inputs[i].sources.size();
+        for (int j = 0; j < c; ++j)
         {
-            const char* input_is_zero = input->bus(*r)->maxAbsValue() > 0.f ? "active signal" : "zero signal";
-            for (int i = 0; i < tab; ++i)
-                printf(" ");
-            printf("input %d: %s\n", i, input_is_zero);
-            int c = input->numberOfRenderingConnections(*r);
-            for (int j = 0; j < c; ++j)
+            AudioNode* n = inputs[i].sources[j].node.get();
+            if (n)
             {
-                AudioNode* n = input->renderingOutput(*r, j)->sourceNode();
-                if (n)
+                if (nodes.find(reinterpret_cast<uintptr_t>(n)) == nodes.end())
+                    traverse(r, n, "", tab + 3);
+                else
                 {
-                    if (nodes.find(reinterpret_cast<uintptr_t>(n)) == nodes.end())
-                        traverse(r, n, "", tab + 3);
-                    else
-                    {
-                        for (int i = 0; i < tab; ++i)
-                            printf(" ");
-                        printf("*--> %s\n", n->name());   // just show gotos to previous nodes
-                    }
+                    for (int s = 0; s < tab; ++s)
+                        printf(" ");
+                    printf("*--> %s\n", n->name());   // just show gotos to previous nodes
                 }
             }
         }
@@ -185,6 +190,7 @@ struct labsound_example
 
     Demo* _demo;
     std::shared_ptr<lab::AudioNode> _root_node;
+    bool _connected = false;
 
     void connect()
     {
@@ -199,10 +205,13 @@ struct labsound_example
             ac.synchronizeConnections();
             _root_node->_scheduler.start(0);
         }
+        _connected = true;
     }
 
     void disconnect()
     {
+        _connected = false;
+
         if (!_root_node)
             return;
 
@@ -220,7 +229,7 @@ struct labsound_example
 
     virtual void ui()
     {
-        if (!_root_node || !_root_node->output(0)->isConnected())
+        if (!_root_node || !_connected)
             return;
 
         ImGui::BeginChild("###EXAMPLE", ImVec2{ 0, 100 }, true);
@@ -304,7 +313,7 @@ struct ex_sfxr : public labsound_example
 
     virtual void ui() override final
     {
-        if (!_root_node || !_root_node->output(0)->isConnected())
+        if (!_root_node || !_connected)
             return;
 
         ImGui::BeginChild("###SFXR", ImVec2{ 0, 300 }, true);
@@ -550,7 +559,7 @@ struct ex_offline_rendering : public labsound_example
         std::unique_ptr<lab::AudioContext> context = lab::MakeOfflineAudioContext(offlineConfig, recording_time_ms);
 
         auto recorder = std::make_shared<RecorderNode>(*context.get(), offlineConfig);
-        context->addAutomaticPullNode(recorder);
+        context->connect(ac.device(), recorder);
 
         {
             ContextRenderLock r(context.get(), "ex_offline_rendering");
@@ -581,7 +590,7 @@ struct ex_offline_rendering : public labsound_example
 
             printf("Recorded %f seconds of audio\n", recorder->recordedLengthInSeconds());
 
-            context->removeAutomaticPullNode(recorder);
+            context->disconnect(recorder);
             recorder->writeRecordingToWav(path.c_str(), false);
             complete = true;
         };
@@ -743,7 +752,7 @@ struct ex_frequency_modulation : public labsound_example
 
     virtual void update() override
     {
-        if (!_root_node || !_root_node->output(0)->isConnected())
+        if (!_root_node || !_connected)
             return;
 
         auto now = std::chrono::steady_clock::now();
@@ -899,7 +908,7 @@ struct ex_microphone_loopback : public labsound_example
 
     virtual void ui() override final
     {
-        if (!_root_node || !_root_node->output(0)->isConnected())
+        if (!_root_node || !_connected)
             return;
 
         ImGui::BeginChild("###LOOPBACK", ImVec2{ 0, 100 }, true);
@@ -958,7 +967,7 @@ struct ex_microphone_reverb : public labsound_example
 
     virtual void ui() override final
     {
-        if (!_root_node || !_root_node->output(0)->isConnected())
+        if (!_root_node || !_connected)
             return;
 
         ImGui::BeginChild("###MICREVERB", ImVec2{ 0, 100 }, true);
@@ -1093,7 +1102,7 @@ struct ex_stereo_panning : public labsound_example
         if (!autopan)
             return;
 
-        if (!_root_node || !_root_node->output(0)->isConnected())
+        if (!_root_node || !_connected)
             return;
 
         const float seconds = 10.f;
@@ -1110,7 +1119,7 @@ struct ex_stereo_panning : public labsound_example
 
     virtual void ui() override final
     {
-        if (!_root_node || !_root_node->output(0)->isConnected())
+        if (!_root_node || !_connected)
             return;
 
         ImGui::BeginChild("###PANNING", ImVec2{ 0, 100 }, true);
@@ -1163,7 +1172,7 @@ struct ex_hrtf_spatialization : public labsound_example
 
         ContextRenderLock r(&ac, "ex_hrtf_spatialization");
 
-        panner->setPanningModel(PanningMode::HRTF);
+        panner->setPanningModel(PanningModel::HRTF);
 
         audioClipNode->setBus(r, audioClip);
         ac.connect(panner, audioClipNode, 0, 0);
@@ -1185,7 +1194,7 @@ struct ex_hrtf_spatialization : public labsound_example
         if (!autopan)
             return;
 
-        if (!_root_node || !_root_node->output(0)->isConnected())
+        if (!_root_node || !_connected)
             return;
 
         const float seconds = 10.f;
@@ -1200,7 +1209,7 @@ struct ex_hrtf_spatialization : public labsound_example
     
     virtual void ui() override final
     {
-        if (!_root_node || !_root_node->output(0)->isConnected())
+        if (!_root_node || !_connected)
             return;
 
         ImGui::BeginChild("###HRTF", ImVec2{ 0, 500 }, true);
@@ -1283,7 +1292,7 @@ struct ex_convolution_reverb : public labsound_example
 
     virtual void ui() override final
     {
-        if (!_root_node || !_root_node->output(0)->isConnected())
+        if (!_root_node || !_connected)
             return;
 
         ImGui::BeginChild("###CONVREVERB", ImVec2{ 0, 100 }, true);
@@ -1486,7 +1495,7 @@ struct ex_dalek_filter : public labsound_example
 
     virtual void ui() override final
     {
-        if (!_root_node || !_root_node->output(0)->isConnected())
+        if (!_root_node || !_connected)
             return;
 
         ImGui::BeginChild("###DALEK", ImVec2{ 0, 100 }, true);
@@ -1659,7 +1668,7 @@ struct ex_redalert_synthesis : public labsound_example
 
     virtual void ui() override final
     {
-        if (!_root_node || !_root_node->output(0)->isConnected())
+        if (!_root_node || !_connected)
             return;
 
         ImGui::BeginChild("###ALERT", ImVec2{ 0, 100 }, true);
@@ -1889,7 +1898,7 @@ struct ex_wavepot_dsp : public labsound_example
 
     virtual void play() override final
     {
-        if (_root_node && _root_node->output(0)->isConnected())
+        if (_root_node && _connected)
             return;
 
         grooveBox->start(0);
@@ -1898,7 +1907,7 @@ struct ex_wavepot_dsp : public labsound_example
 
     virtual void ui() override final
     {
-        if (!_root_node || !_root_node->output(0)->isConnected())
+        if (!_root_node || !_connected)
             return;
 
         ImGui::BeginChild("###WAVEPOT", ImVec2{ 0, 100 }, true);
@@ -2012,7 +2021,7 @@ struct ex_poly_blep : public labsound_example
 
     virtual void update() override
     {
-        if (!_root_node || !_root_node->output(0)->isConnected())
+        if (!_root_node || !_connected)
             return;
 
         const uint32_t delay_time_ms = 500;

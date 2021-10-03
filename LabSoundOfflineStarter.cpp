@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) try
 
     auto recorder = std::make_shared<RecorderNode>(ac, offlineConfig);
 
-    context->addAutomaticPullNode(recorder);
+    context->connect(ac.device(), recorder, 1, 0);
 
     recorder->startRecording();
 
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) try
 
         printf("Recorded %f seconds of audio\n", recorder->recordedLengthInSeconds());
 
-        context->removeAutomaticPullNode(recorder);
+        context->disconnect(recorder);
         recorder->writeRecordingToWav("ex_offline_rendering.wav", false);
         complete = true;
     };
