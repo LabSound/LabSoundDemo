@@ -140,7 +140,7 @@ void traverse(ContextRenderLock* r, AudioNode* root, char const* const prefix, i
     for (int i = 0; i < inputs.size(); ++i)
     {
         const char* input_is_zero;
-        if (!inputs[i].sources.size())
+        if (!inputs[i].sources.size() || !inputs[i].sources[0].node)
             input_is_zero = "not connected";
         else 
             input_is_zero = inputs[i].sources[0].node->outputBus(*r, 0)->maxAbsValue() > 0.f ? "active signal" : "zero signal";
@@ -216,11 +216,9 @@ struct labsound_example
             return;
 
         auto& ac = *_demo->context.get();
-        if (!ac.isConnected(_demo->recorder, _root_node))
-        {
-            ac.disconnect(_demo->recorder, _root_node);
-            ac.synchronizeConnections();
-        }
+        ac.disconnect(_root_node);
+        ac.disconnect(_demo->recorder);
+        ac.synchronizeConnections();
     }
 
     virtual void play() = 0;
