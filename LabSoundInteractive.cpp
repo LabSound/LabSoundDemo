@@ -1477,7 +1477,7 @@ struct ex_dalek_filter : public labsound_example
 
         ac.connect(outGain, compressor, 0, 0);
 
-        _root_node = vcDiode4;// outGain;
+        _root_node = outGain;
     }
 
     virtual void play() override
