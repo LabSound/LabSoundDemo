@@ -13,7 +13,7 @@ Build and install. The install is necessary to put the sample audio files in the
 ```sh
 mkdir build
 cd build
-cmake -- -DCMAKE_INSTALL_PREFIX="./install"
+cmake .. -DCMAKE_INSTALL_PREFIX="./install"
 cmake --build . --target install --config Release
 ```
 
